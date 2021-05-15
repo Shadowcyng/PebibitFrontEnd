@@ -7,13 +7,13 @@ const Main = ({ songIndex, setSongIndex }) => {
 
 	useEffect(() => {
 		if (!token) {
-			window.location = 'http://localhost:5000/login';
+			window.location = 'http://localhost:3000/login';
 		}
 	}, [token]);
 	return (
 		<Fragment>
-			<Sidebar songIndex={songIndex} setSongIndex={setSongIndex} />
-			<Player songIndex={songIndex} setSongIndex={setSongIndex} />
+			<Sidebar />
+			<Player />
 		</Fragment>
 	);
 };

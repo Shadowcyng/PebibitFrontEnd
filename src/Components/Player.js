@@ -8,66 +8,96 @@ import PauseCircleFilledIcon from '@material-ui/icons/PauseCircleFilled';
 import io from 'socket.io-client';
 import axios from 'axios';
 import songs from '../utils/songs';
-
-const Player = ({ songIndex, setSongIndex }) => {
-	let socket, token;
+var socket = null;
+const Player = () => {
+	var token = localStorage.getItem('token');
 	const [playing, setPlaying] = useState(false);
-	// const [songIndex, setSongIndex] = useState(0)
+	const [activeAt, setActiveAt] = useState('');
+	const [songIndex, setSongIndex] = useState(0);
 	const music = useRef();
 
-	socket = io('http://localhost:5000');
 	useEffect(() => {
-		token = window.location.search.split('=')[1];
-		console.log('token', token);
-		socket.emit('join', { token }, () => {});
-		socket.on('user', (user) => {
-			console.log(user);
-		});
-		return () => {
-			// socket.emit('disconnect')
-			socket.off();
-		};
-	}, [token]);
-	useEffect(() => {
-		music.current.autoplay = playing ? true : false;
-		console.log(playing);
-		socket.on('previous', ({ songIndex }) => {
-			console.log('Triggered');
-			setSongIndex(songIndex);
-		});
-	}, []);
+		if (socket == null) {
+			socket = io('http://localhost:5000');
+			socket.emit('join', { token }, () => {
+				console.log(socket.id);
+			});
 
+			socket.on('event', ({ type, ...args }) => {
+				switch (type) {
+					case 'init':
+						if (args.activeAt) setActiveAt(args.activeAt);
+						setSongIndex(args.songIndex);
+						break;
+					case 'change':
+						setSongIndex(args.songIndex);
+						break;
+					case 'playPause':
+						setActiveAt(args.activeAt);
+						if (args.status == 'pause') {
+							if (music.current) {
+								setPlaying(false);
+								music.current.pause();
+							}
+						} else {
+							if (music.current) {
+								setPlaying(true);
+								music.current.play();
+							}
+						}
+						break;
+				}
+			});
+		}
+		music.current.autoplay = playing ? true : false;
+	});
+
+	const socketEmitter = (value, type) => {
+		socket.emit('event', { type: type, value: value, token: token });
+	};
 	const handlePlay = (e) => {
 		e.preventDefault();
 		setPlaying(false);
 		music.current.pause();
+		socketEmitter('pause', 'clientPlayPauseChange');
 	};
 	const handlePause = (e) => {
 		e.preventDefault();
 		setPlaying(true);
 		music.current.play();
+		socketEmitter('play', 'clientPlayPauseChange');
 	};
 
 	const handleNext = (e) => {
 		e.preventDefault();
-		setSongIndex((songIndex + 1) % songs.length);
+		let newIdx = (songIndex + 1) % songs.length;
+		setSongIndex(newIdx);
+		socketEmitter(newIdx, 'clientRequestChange');
 		playing
 			? (music.current.autoplay = true)
 			: (music.current.autoplay = false);
 	};
+
 	const handlePrev = (e) => {
 		e.preventDefault();
-		setSongIndex((songIndex - 1 + songs.length) % songs.length);
-		socket.emit('prev', { songIndex, token }, () => {
-			// console.log(music);
-			playing
-				? (music.current.autoplay = true)
-				: (music.current.autoplay = false);
-		});
+		let newIdx = songIndex - 1;
+		if (newIdx < 0) {
+			newIdx = songs.length - 1;
+		}
+		setSongIndex(newIdx);
+		socketEmitter(newIdx, 'clientRequestChange');
+		playing
+			? (music.current.autoplay = true)
+			: (music.current.autoplay = false);
 	};
 
 	return (
 		<div className='player'>
+			<div className='player__activeAt'>
+				<div>
+					{!playing && <span>Active At:</span>} {playing ? '' : activeAt}
+				</div>
+			</div>
 			<div className='card'>
 				<div className='card__header'>
 					<div className='player__title'>{songs[songIndex]['title']}</div>

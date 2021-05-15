@@ -5,11 +5,7 @@ import axios from 'axios';
 
 import '../App.css';
 
-const Sidebar = ({ songIndex, setSongIndex }) => {
-	const handleClick = (e, song) => {
-		e.preventDefault();
-		setSongIndex(song.id);
-	};
+const Sidebar = () => {
 	const handleLogout = (e) => {
 		const token = localStorage.getItem('token');
 		axios.get(`http://localhost:5000/logout/${token}`).then((res) => {
@@ -26,10 +22,7 @@ const Sidebar = ({ songIndex, setSongIndex }) => {
 				{songs.map((song) => {
 					return (
 						<li key={song.id} className='song__list'>
-							<div
-								className='song__list_wrapper'
-								onClick={(e) => handleClick(e, song)}
-							>
+							<div className='song__list_wrapper'>
 								<MusicNoteIcon className='musicicon' />
 								<div className='song__title'>{song.title}</div>
 								<div className='song__artist'>{song.artist}</div>

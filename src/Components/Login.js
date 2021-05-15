@@ -15,7 +15,7 @@ const Login = () => {
 		} else {
 			inputF.current.focus();
 		}
-	}, [token]);
+	}, []);
 	const handleSubmit = (e) => {
 		e.preventDefault();
 		if (username.trim() !== '' && password.trim() !== '') {
