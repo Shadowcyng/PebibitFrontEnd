@@ -2,7 +2,7 @@ import React, { Fragment, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Player from './Player';
 
-const Main = ({ songIndex, setSongIndex }) => {
+const Main = (d) => {
 	const token = localStorage.getItem('token');
 
 	useEffect(() => {

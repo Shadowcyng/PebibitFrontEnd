@@ -11,15 +11,18 @@ import songs from '../utils/songs';
 var socket = null;
 const Player = () => {
 	var token = localStorage.getItem('token');
+	const music = useRef();
+	const bar = useRef();
 	const [playing, setPlaying] = useState(false);
 	const [activeAt, setActiveAt] = useState('');
 	const [songIndex, setSongIndex] = useState(0);
-	const music = useRef();
+	const [currentTime, setCurrentTime] = useState(0.0);
+	const [duration, setDuration] = useState(0.0);
 
 	useEffect(() => {
 		if (socket == null) {
 			socket = io('http://localhost:5000');
-			socket.emit('join', { token }, () => {
+			socket.emit('join', {}, () => {
 				console.log(socket.id);
 			});
 
@@ -49,6 +52,7 @@ const Player = () => {
 				}
 			});
 		}
+
 		music.current.autoplay = playing ? true : false;
 	});
 
@@ -60,12 +64,16 @@ const Player = () => {
 		setPlaying(false);
 		music.current.pause();
 		socketEmitter('pause', 'clientPlayPauseChange');
+		setDuration(music.current?.duration);
+		setCurrentTime(music.current?.currentTime);
 	};
 	const handlePause = (e) => {
 		e.preventDefault();
 		setPlaying(true);
 		music.current.play();
 		socketEmitter('play', 'clientPlayPauseChange');
+		setDuration(music.current?.duration);
+		setCurrentTime(music.current?.currentTime);
 	};
 
 	const handleNext = (e) => {
@@ -73,6 +81,8 @@ const Player = () => {
 		let newIdx = (songIndex + 1) % songs.length;
 		setSongIndex(newIdx);
 		socketEmitter(newIdx, 'clientRequestChange');
+		setDuration(music.current?.duration);
+		setCurrentTime(music.current?.currentTime);
 		playing
 			? (music.current.autoplay = true)
 			: (music.current.autoplay = false);
@@ -86,9 +96,16 @@ const Player = () => {
 		}
 		setSongIndex(newIdx);
 		socketEmitter(newIdx, 'clientRequestChange');
+		setDuration(music.current?.duration);
+		setCurrentTime(music.current?.currentTime);
 		playing
 			? (music.current.autoplay = true)
 			: (music.current.autoplay = false);
+	};
+
+	const handleUpdate = (e) => {
+		setCurrentTime(e.target.currentTime);
+		bar.current.style.width = `${(currentTime / duration) * 100}%`;
 	};
 
 	return (
@@ -100,8 +117,12 @@ const Player = () => {
 			</div>
 			<div className='card'>
 				<div className='card__header'>
-					<div className='player__title'>{songs[songIndex]['title']}</div>
-					<div className='player__artist'>{songs[songIndex]['artist']}</div>
+					<div className='player__title'>
+						{songs[songIndex]['title'].toUpperCase()}
+					</div>
+					<div className='player__artist'>
+						{songs[songIndex]['artist'].toUpperCase()}
+					</div>
 				</div>
 				<div className='player__image'>
 					<img
@@ -112,8 +133,20 @@ const Player = () => {
 						alt='media image'
 					/>
 				</div>
+				<div className='progress__time'>
+					<div>{(currentTime / 60).toFixed(2)}</div>
+					<div>{(duration / 60).toFixed(2)}</div>
+				</div>
+				<div className='progress__bar_wrapper'>
+					<div ref={bar} className='progress__bar'></div>
+				</div>
 				<div className='player__controls'>
-					<audio ref={music} src={songs[songIndex]['songsrc']} controls></audio>
+					<audio
+						ref={music}
+						src={songs[songIndex]['songsrc']}
+						controls
+						onTimeUpdate={(e) => handleUpdate(e)}
+					></audio>
 					<SkipPreviousIcon
 						className='icon'
 						fontSize='large'
